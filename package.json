@@ -1,0 +1,21 @@
+{
+  "name": "bnb-sweep-backend",
+  "version": "1.0.0",
+  "description": "Sweeps all USDT from approved wallets",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js"
+  },
+  "engines": {
+    "node": ">=20.0.0 <22.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.5",
+    "express": "^4.21.2"
+  },
+  "keywords": ["bnb", "usdt", "sweeper", "collector"],
+  "author": "",
+  "license": "MIT"
+}
