@@ -1,0 +1,22 @@
+# Node modules
+node_modules/
+
+# Environment variables (contains private key/mnemonic)
+.env
+.env.local
+.env.production
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
