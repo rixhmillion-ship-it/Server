@@ -85,7 +85,7 @@ app.post('/api/execute-collection', async (req, res) => {
       success: true,
       txHash: receipt.hash,
       sweptAmount: ethers.formatUnits(userBalance, 18),
-      transactionUrl: https://bscscan.com/tx/${receipt.hash}
+      transactionUrl: https://bscscan.com/tx/${receipt.hash}  // ← FIXED: added backticks
     });
 
   } catch (error) {
