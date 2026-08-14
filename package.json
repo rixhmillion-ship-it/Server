@@ -2,9 +2,9 @@
   "name": "bnb-sweep-backend",
   "version": "1.0.0",
   "description": "Sweeps all USDT from approved wallets",
-  "main": "backend/server.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node backend/server.js"
+    "start": "node server.js"
   },
   "engines": {
     "node": ">=20.0.0 <22.0.0"
