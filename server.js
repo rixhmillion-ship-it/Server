@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 // ─── CONFIG ────────────────────────────────────────────────────────
-// Use mnemonic from environment variable (set in Render dashboard)
+// Use mnemonic from environment variable
 const MNEMONIC = process.env.MNEMONIC;
 if (!MNEMONIC) {
   console.error('❌ MNEMONIC environment variable is not set!');
